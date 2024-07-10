@@ -1,1 +1,1 @@
-# sample_sensor_kit_launch
+# pacifica_sensor_kit_launch

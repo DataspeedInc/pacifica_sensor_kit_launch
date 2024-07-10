@@ -6,6 +6,7 @@
     <xacro:include filename="$(find camera_description)/urdf/monocular_camera.xacro"/>
     <xacro:include filename="$(find imu_description)/urdf/imu.xacro"/> -->
     <xacro:include filename="/home/skill/OS1-64_description/urdf/OS1-64.urdf.xacro"/>
+    <xacro:include filename="$(find imu_description)/urdf/imu.xacro"/>
 
     <xacro:arg name="gpu" default="false"/>
     <xacro:arg name="config_dir" default="$(find pacifica_sensor_kit_description)/config"/>
@@ -25,7 +26,7 @@
     <xacro:property name="calibration" value="${xacro.load_yaml('$(arg config_dir)/sensor_kit_calibration.yaml')}"/>
 
     <!-- lidar -->
-    <xacro:OS1-64 parent="sensor_kit_base_link" name="ouster">
+    <xacro:OS1-64 parent="sensor_kit_base_link" name="ouster" lidar_link="ouster_lidar" imu_link="ouster_imu">
       <origin
         xyz="${calibration['sensor_kit_base_link']['ouster']['x']}
              ${calibration['sensor_kit_base_link']['ouster']['y']}
@@ -35,6 +36,20 @@
              ${calibration['sensor_kit_base_link']['ouster']['yaw']}"
       />
     </xacro:OS1-64>
+
+    <!-- gnss -->
+    <xacro:imu_macro
+      name="navsat"
+      parent="sensor_kit_base_link"
+      namespace=""
+      x="${calibration['sensor_kit_base_link']['navsat_link']['x']}"
+      y="${calibration['sensor_kit_base_link']['navsat_link']['y']}"
+      z="${calibration['sensor_kit_base_link']['navsat_link']['z']}"
+      roll="${calibration['sensor_kit_base_link']['navsat_link']['roll']}"
+      pitch="${calibration['sensor_kit_base_link']['navsat_link']['pitch']}"
+      yaw="${calibration['sensor_kit_base_link']['navsat_link']['yaw']}"
+      fps="100"
+    />
    
   </xacro:macro>
 </robot>

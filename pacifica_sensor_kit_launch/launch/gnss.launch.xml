@@ -1,7 +1,7 @@
 <launch>
-  <arg name="launch_driver" default="true"/>
-  <arg name="gnss_receiver" default="oxts" description="ublox(default), septentrio or oxts"/>
-  
+  <arg name="launch_driver" default="true" description="do launch driver"/>
+  <arg name="gnss_receiver" default="oxts" description="ublox(default) or septentrio"/>
+  <arg name="playback" default="false" description="use playback mode"/>
 
   <group>
     <push-ros-namespace namespace="gnss"/>
@@ -9,14 +9,16 @@
     <!-- Switch topic name -->
     <let name="navsatfix_topic_name" value="ublox/nav_sat_fix" if="$(eval &quot;'$(var gnss_receiver)'=='ublox'&quot;)"/>
     <let name="navsatfix_topic_name" value="septentrio/nav_sat_fix" if="$(eval &quot;'$(var gnss_receiver)'=='septentrio'&quot;)"/>
-    <let name="navsatfix_topic_name" value="/oxts/fix" if="$(eval &quot;'$(var gnss_receiver)'=='oxts'&quot;)"/>
-    <let name="orientation_topic_name" value="/autoware_orientation"/>
 
+    <let name="navsatfix_topic_name" value="oxts/nav_sat_fix" if="$(eval &quot;'$(var gnss_receiver)'=='oxts'&quot;)"/>
+    <let name="orientation_topic_name" value="/autoware_orientation"/>
+    <let name="playback" value="false" if="$(eval &quot;'$(var launch_driver)'=='true'&quot;)"/>
 
     <!-- OxTS GNSS Driver -->
     <group if="$(eval &quot;'$(var launch_driver)' and '$(var gnss_receiver)'=='oxts'&quot;)">
       <!-- OxTS GPS -->
       <include file="$(find-pkg-share ds_devices)/launch/oxts_driver.launch.py">
+        <arg name="playback" value="$(var playback)"/>
         <arg name="unit_ip" value="192.168.0.3" />
         <arg name="topic_prefix" value="oxts" />
         <arg name="param_file" value="$(find-pkg-share ds_devices)/config/oxts_params.yaml" />
@@ -48,6 +50,4 @@
       <arg name="use_gnss_ins_orientation" value="true"/>
     </include>
   </group>
-
-  <arg name="gnss_frame" value="base_link"/>
 </launch>

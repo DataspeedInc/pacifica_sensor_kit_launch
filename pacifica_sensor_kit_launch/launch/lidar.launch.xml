@@ -37,8 +37,8 @@
       </include>
 
       <!-- Ouster LIDAR -->
-      <include if="$(var launch_driver)" file="$(find-pkg-share white_pacifica)/launch/ouster_driver.launch.py">
-        <arg name="params_file" value="$(find-pkg-share white_pacifica)/config/ouster.yaml" />
+      <include if="$(var launch_driver)" file="$(find-pkg-share pacifica_sensor_kit_launch)/launch/ouster_driver.launch.py">
+        <arg name="params_file" value="$(find-pkg-share pacifica_sensor_kit_launch)/config/ouster.yaml" />
         <arg name="ouster_ns" value="ouster" />
       </include>
 

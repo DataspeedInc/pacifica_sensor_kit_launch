@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+
+from ament_index_python.packages import get_package_share_directory
 import launch
 from launch.actions import DeclareLaunchArgument
 from launch.actions import OpaqueFunction
@@ -20,8 +23,11 @@ from launch.conditions import IfCondition
 from launch.conditions import UnlessCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import ComposableNodeContainer
+from launch_ros.actions import LoadComposableNodes
 from launch_ros.descriptions import ComposableNode
+from launch_ros.parameter_descriptions import ParameterFile
 import yaml
+
 
 def get_vehicle_info(context):
     # TODO(TIER IV): Use Parameter Substitution after we drop Galactic support
@@ -54,6 +60,11 @@ def launch_setup(context, *args, **kwargs):
             result[x] = LaunchConfiguration(x)
         return result
     
+    distortion_corrector_node_param = ParameterFile(
+        param_file=LaunchConfiguration("distortion_correction_node_param_path").perform(context),
+        allow_substs=True,
+    )
+    
     nodes = []
     
     nodes.append(
@@ -77,8 +88,8 @@ def launch_setup(context, *args, **kwargs):
 
     nodes.append(
         ComposableNode(
-            package="pointcloud_preprocessor",
-            plugin="pointcloud_preprocessor::CropBoxFilterComponent",
+            package="autoware_pointcloud_preprocessor",
+            plugin="autoware::pointcloud_preprocessor::CropBoxFilterComponent",
             name="crop_box_filter_self",
             remappings=[
                 ("input", "pointcloud_raw_ex"),
@@ -99,58 +110,82 @@ def launch_setup(context, *args, **kwargs):
 
     nodes.append(
         ComposableNode(
-            package="pointcloud_preprocessor",
-            plugin="pointcloud_preprocessor::CropBoxFilterComponent",
+            package="autoware_pointcloud_preprocessor",
+            plugin="autoware::pointcloud_preprocessor::CropBoxFilterComponent",
             name="crop_box_filter_mirror",
             remappings=[
                 ("input", "self_cropped/pointcloud_ex"),
-                ("output", "mirror_cropped/pointcloud_ex"), # was mirror_cropped/pointcloud_ex
+                ("output", "pointcloud_before_sync"), # was mirror_cropped/pointcloud_ex
             ],
             parameters=[cropbox_parameters],
             extra_arguments=[{"use_intra_process_comms": LaunchConfiguration("use_intra_process")}],
         )
     )
+    
 
-    nodes.append(
-        ComposableNode(
-            package="pointcloud_preprocessor",
-            plugin="pointcloud_preprocessor::DistortionCorrectorComponent",
-            name="distortion_corrector_node",
-            remappings=[
-                ("~/input/twist", "/sensing/vehicle_velocity_converter/twist_with_covariance"),
-                ("~/input/imu", "/sensing/imu/imu_data"),
-                ("~/input/pointcloud", "mirror_cropped/pointcloud_ex"),
-                ("~/output/pointcloud", "pointcloud_before_sync"), # was rectified/pointcloud_ex
-            ],
-            extra_arguments=[{"use_intra_process_comms": LaunchConfiguration("use_intra_process")}],
-        )
-    )
+    # nodes.append(
+    #     ComposableNode(
+    #         package="autoware_pointcloud_preprocessor",
+    #         plugin="autoware::pointcloud_preprocessor::DistortionCorrectorComponent",
+    #         name="distortion_corrector_node",
+    #         remappings=[
+    #             ("~/input/twist", "/sensing/vehicle_velocity_converter/twist_with_covariance"),
+    #             ("~/input/imu", "/sensing/imu/imu_data"),
+    #             ("~/input/pointcloud", "mirror_cropped/pointcloud_ex"),
+    #             ("~/output/pointcloud", "rectified/pointcloud_ex"), # was rectified/pointcloud_ex
+    #         ],
+    #         parameters=[distortion_corrector_node_param],
+    #         extra_arguments=[{"use_intra_process_comms": LaunchConfiguration("use_intra_process")}],
+    #     )
+    # )
 
-    # Ring Outlier Filter is the last component in the pipeline, so control the output frame here
-    if LaunchConfiguration("output_as_sensor_frame").perform(context).lower() == "true":
-        ring_outlier_filter_parameters = {"output_frame": LaunchConfiguration("frame_id")}
-    else:
-        ring_outlier_filter_parameters = {
-            "output_frame": ""
-        }  # keep the output frame as the input frame
-    nodes.append(
-        ComposableNode(
-            package="pointcloud_preprocessor",
-            plugin="pointcloud_preprocessor::RingOutlierFilterComponent",
-            name="ring_outlier_filter",
-            remappings=[
-                ("input", "rectified/pointcloud_ex"),
-                ("output", "pointcloud_before_sync"),
-            ],
-            parameters=[ring_outlier_filter_parameters],
-            extra_arguments=[{"use_intra_process_comms": LaunchConfiguration("use_intra_process")}],
-        )
-    )
+    # # Ring Outlier Filter is the last component in the pipeline, so control the output frame here
+    # if LaunchConfiguration("output_as_sensor_frame").perform(context).lower() == "true":
+    #     ring_outlier_filter_parameters = {"output_frame": LaunchConfiguration("frame_id")}
+    # else:
+    #     ring_outlier_filter_parameters = {
+    #         "output_frame": ""
+    #     }  # keep the output frame as the input frame
+    # nodes.append(
+    #     ComposableNode(
+    #         package="autoware_pointcloud_preprocessor",
+    #         plugin="autoware::pointcloud_preprocessor::RingOutlierFilterComponent",
+    #         name="ring_outlier_filter",
+    #         remappings=[
+    #             ("input", "mirror_cropped/pointcloud_ex"), # was rectified/pointcloud_ex
+    #             ("output", "pointcloud_before_sync"),
+    #         ],
+    #         parameters=[ring_outlier_filter_parameters],
+    #         extra_arguments=[{"use_intra_process_comms": LaunchConfiguration("use_intra_process")}],
+    #     )
+    # )
+    
+    # nodes.append(
+    #     ComposableNode(
+    #         package="autoware_pointcloud_preprocessor",
+    #         plugin="autoware::pointcloud_preprocessor::RanDownsampleFilterComponent",
+    #         name="voxel_grid_downsample_filter",
+    #         remappings=[
+    #             ("input", "outlier_filtered/pointcloud_ex"),
+    #             ("output", "pointcloud_before_sync"),
+    #         ],
+    #         parameters=[
+    #             {
+    #                 "voxel_size_x": 0.3,
+    #                 "voxel_size_y": 0.3,
+    #                 "voxel_size_z": 0.1,
+    #             }
+    #         ],
+    #         extra_arguments=[
+    #             {"use_intra_process_comms": LaunchConfiguration("use_intra_process")}
+    #         ],
+    #     ),
+    # )
 
     # set container to run all required components in the same process
     container = ComposableNodeContainer(
         name=LaunchConfiguration("container_name"),
-        namespace="pointcloud_preprocessor",
+        namespace="autoware_pointcloud_preprocessor",
         package="rclcpp_components",
         executable=LaunchConfiguration("container_executable"),
         composable_node_descriptions=nodes,
@@ -167,6 +202,9 @@ def generate_launch_description():
 
     def add_launch_arg(name: str, default_value=None):
         launch_arguments.append(DeclareLaunchArgument(name, default_value=default_value))
+        
+    common_sensor_share_dir = get_package_share_directory("pacifica_common_sensor_launch")
+
 
     add_launch_arg("base_frame", "base_link")
     add_launch_arg("input_frame", LaunchConfiguration("base_frame"))
@@ -175,6 +213,16 @@ def generate_launch_description():
     add_launch_arg("use_multithread", "False")
     add_launch_arg("use_intra_process", "False")
     add_launch_arg("pointcloud_container_name", "pointcloud_container")
+    
+    add_launch_arg(
+        "distortion_correction_node_param_path",
+        os.path.join(
+            common_sensor_share_dir,
+            "config",
+            "distortion_corrector_node.param.yaml",
+        ),
+        
+    )
 
     set_container_executable = SetLaunchConfiguration(
         "container_executable",

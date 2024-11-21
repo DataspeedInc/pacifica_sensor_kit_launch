@@ -14,11 +14,8 @@
 
 
 import launch
-from launch.actions import DeclareLaunchArgument
-from launch.actions import OpaqueFunction
-from launch.actions import SetLaunchConfiguration
-from launch.conditions import IfCondition
-from launch.conditions import UnlessCondition
+from launch.actions import DeclareLaunchArgument, OpaqueFunction, SetLaunchConfiguration
+from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import LoadComposableNodes
 from launch_ros.descriptions import ComposableNode
@@ -27,8 +24,8 @@ from launch_ros.descriptions import ComposableNode
 def launch_setup(context, *args, **kwargs):
     # set concat filter as a component
     concat_component = ComposableNode(
-        package="pointcloud_preprocessor",
-        plugin="pointcloud_preprocessor::PointCloudConcatenateDataSynchronizerComponent",
+        package="autoware_pointcloud_preprocessor",
+        plugin="autoware::pointcloud_preprocessor::PointCloudConcatenateDataSynchronizerComponent",
         name="concatenate_data",
         remappings=[
             ("~/input/twist", "/sensing/vehicle_velocity_converter/twist_with_covariance"),

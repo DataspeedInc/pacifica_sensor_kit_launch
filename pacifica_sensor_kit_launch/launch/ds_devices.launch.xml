@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="playback" default="True" />
+
+  <!-- OxTS GPS -->
+  <include file="$(find-pkg-share pacifica_sensor_kit_launch)/launch/oxts_driver.launch.py">
+    <arg name="playback" value="$(var playback)" />
+    <arg name="unit_ip" value="192.168.0.3" />
+    <arg name="topic_prefix" value="oxts" />
+    <arg name="param_file" value="$(find-pkg-share pacifica_sensor_kit_launch)/config/oxts_params.yaml" />
+  </include>
+
+  <!-- Ouster LIDAR -->
+  <include file="$(find-pkg-share pacifica_sensor_kit_launch)/launch/ouster_driver.launch.py">
+    <arg name="playback" value="$(var playback)" />
+    <arg name="frame_id" value="ouster" />
+    <arg name="lidar_hostname" value="192.168.0.4" />
+  </include>
+
+  <!-- DBW -->
+  <include file="$(find-pkg-share ds_dbw_can)/launch/dbw.launch.xml">
+    <arg name="can_ns" value="/can_bus_dbw" />
+  </include>
+
+  <!-- Static TF frames -->
+  <group>
+    <push-ros-namespace namespace="vehicle" />
+    <include file="$(find-pkg-share pacifica_sensor_kit_launch)/launch/robot_state_publisher.launch.py">
+      <arg name="use_sim_time" value="$(var playback)" />
+      <arg name="urdf_path" value="$(find-pkg-share pacifica_sensor_kit_description)/urdf/white_pacifica.urdf" /> 
+    </include>
+  </group>
+</launch>

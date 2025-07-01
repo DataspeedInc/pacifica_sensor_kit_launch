@@ -48,8 +48,12 @@ def launch_setup(context, *args, **kwargs):
 def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('playback', default_value='False', description='Play from bag file'),
-        DeclareLaunchArgument('unit_ip', default_value='0.0.0.0', description='IP address for the OxTS receiver'),
+        DeclareLaunchArgument('unit_ip', default_value='192.168.0.3', description='IP address for the OxTS receiver'),
         DeclareLaunchArgument('topic_prefix', default_value='', description='Prefix for topics'),
-        DeclareLaunchArgument('param_file', default_value=os.path.join(get_package_share_directory('ds_devices'), 'config', 'oxts_params.yaml'), description='Full path to configuration parameter file'),
+        DeclareLaunchArgument(
+                                'param_file',
+                                default_value='/workspaces/dataspeed_autoware_docker/src/launcher/autoware_launch/sensor_kit/pacifica_sensor_kit_launch/pacifica_sensor_kit_launch/config/oxts_params.yaml',
+                                description='Full path to configuration parameter file'
+                            ),
         OpaqueFunction(function=launch_setup)
     ])
